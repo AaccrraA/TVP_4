@@ -3,6 +3,7 @@
 #include <string>
 #include <locale>
 #include <vector>
+
 using namespace std;
 
 struct Element {
@@ -251,6 +252,17 @@ private:
 			}
 		}
 	}
+    
+    bool isSameColumns(int i1, int i2) {
+        bool isTheSame = true;
+        for (int i = 0; i < FSM[0].size(); i++) {
+            if (FSM[i1][i] != FSM[i2][i]) {
+                isTheSame = false;
+                break;
+            }
+        }
+        return isTheSame;
+    }
 
 public:
 	void initDefault() {
@@ -289,15 +301,66 @@ public:
 	}
 
 	void optimizeFSM() {
-
+        for (int i1 = 0; i1 < FSM.size(); i1++) {
+            for (int i2 = i1+1; i2 < FSM.size(); i2++) {
+                if (i1 != i2 && isSameColumns(i1, i2)) {
+                    for (int k = 0; k < FSM.size(); k++) {
+                        for (int z = 0; z < FSM[0].size(); z++) {
+                            if (FSM[k][z] >= i2) {
+                                FSM[k][z]--;
+                            }
+                        }
+                    }
+                    FSM.erase(FSM.begin()+i2);
+                    i1--;
+                }
+            }
+        }
 	}
+    
+    void printFSM() {
+        for (int j = 0; j < FSM[0].size()+1; j++) {
+            if (j == 0) {
+                cout << "* ";
+            }
+            else {
+                cout << X[j-1] << " ";
+            }
+            for (int i = 0; i < FSM.size(); i++) {
+                if (j == 0) {
+                    cout << i << " ";
+                }
+                else if (FSM[i][j-1] == -1) {
+                    cout << "_ ";
+                }
+                else {
+                    cout << FSM[i][j-1] << " ";
+                }
+            }
+            cout << endl;
+        }
+    }
 };
 
 int main() {
-	setlocale(LC_ALL, "rus");
-
+//	setlocale(LC_ALL, "rus");
 	Cortege C;
 	C.initDefault();
 	C.buildFSM();
+    cout << "Конечный автомат до оптимизации:" << endl;
+    C.printFSM();
+    cout << "Конечный автомат после оптимизации:" << endl;
+    C.optimizeFSM();
+    C.printFSM();
 	return 0;
 }
+
+
+
+
+
+
+
+
+
+
