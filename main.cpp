@@ -12,6 +12,8 @@ struct Element {
 	bool isMainPlace;
 	bool isPreMainPlace;
 
+	vector<int> preMainIndexes;
+
 	bool addDependsOn(int d) {
         bool isNew = true;
 		for (int i = 0; i < dependsOn.size(); i++) {
@@ -209,14 +211,16 @@ private:
 		Пятое правило:
 		Каждое место подчинено самому себе.
 		*/
-		for (int i = 0; i < R.size(); i + 2) {
-			R[i].addDependsOn(i);
+		for (int i = 0; i < R.size(); i++) {
+			if (i % 2 == 0) {
+				R[i].addDependsOn(i);
+			}
 		}
 	}
 
 	void definePLaces() {
 		for (int i = 0; i < R.size(); i++) {
-			if (i == 0 || (i-2 >= 0 && X.find(R[i -1].symbol) != string::npos)) {
+			if (i - 2 >= 0 && (i == 0 || X.find(R[i - 1].symbol) != string::npos)) {
 				R[i].isMainPlace = true;
 				R[i - 2].isPreMainPlace = true;
 			}
