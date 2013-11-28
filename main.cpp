@@ -339,20 +339,111 @@ public:
             }
             cout << endl;
         }
+        cout << endl;
+    }
+    
+    bool isExpressionCorrexspond(string e) {
+        bool isCorrespond = false;
+        bool isEnd = true;
+        
+        int ei = 0;
+        int q = 0; // состояние
+        do {
+            isEnd = true;
+            for (int j = 0; j < FSM[q].size(); j++) {
+                if (e[ei] == X[j]) {
+                    if (FSM[q][j] != -1) {
+                        q = FSM[q][j];
+                        ei++;
+                        isEnd = false;
+                        break;
+                    }
+                    else {
+                        isEnd = true;
+                        isCorrespond = false;
+                    }
+                }
+            }
+            if (ei == e.length() && q == FSM.size()-1) {
+                isEnd = true;
+                isCorrespond = true;
+            }
+        }
+        while (!isEnd);
+        
+        return isCorrespond;
+    }
+    
+    string getRegularExpression() {
+        string r;
+        for (int i = 0; i < R.size(); i++) {
+            if (i%2 == 1) {
+                r = r+R[i].symbol;
+            }
+        }
+        return r;
     }
 };
+
+int getCommand();
 
 int main() {
 //	setlocale(LC_ALL, "rus");
 	Cortege C;
 	C.initDefault();
+    
 	C.buildFSM();
     cout << "Конечный автомат до оптимизации:" << endl;
     C.printFSM();
     cout << "Конечный автомат после оптимизации:" << endl;
     C.optimizeFSM();
     C.printFSM();
-	return 0;
+	
+    //(x|d)<c><d><e>(z|k)
+    string re = C.getRegularExpression();
+    string e;
+    
+    int cmd = -1;
+    do {
+        cmd = getCommand();
+        switch (cmd) {
+            case 1:
+                cout << "Правило: " << re << endl;
+                cout << "Введи выражение: ";
+                cin >> e;
+                cout << "Выражение \"" << e;
+                C.isExpressionCorrexspond(e) ? cout << "\" " : cout << "\" не ";
+                cout << "подходит." << endl;
+                cout << endl;
+                break;
+            case 2:
+                C.printFSM();
+                break;
+            case 0:
+                cout << "Пока!" << endl;
+                break;
+            default:
+                cerr << "Неизвестная ошибка!" << endl;
+                break;
+        }
+    } while (cmd);
+    return 0;
+}
+
+int getCommand() {
+    int cmd;
+    cout << "Выбери пункт меню: " << endl;
+    cout << "1. Проверить выражение." << endl;
+    cout << "2. Вывести конечный автомат." << endl;
+    cout << "0. Выход." << endl;
+    cin >> cmd;
+    while (!cin.good() || (cmd < 0 || cmd > 2)) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cerr << "Такого пункта меню нет! Повторите ввод: ";
+        cin >> cmd;
+    }
+    return cmd;
 }
 
 
