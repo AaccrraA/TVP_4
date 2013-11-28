@@ -9,8 +9,8 @@ struct Element {
 	char symbol;
 	vector<int> dependsOn;
 	
-	bool isMainPlace;
-	bool isPreMainPlace;
+	bool isMainPlace = false;
+	bool isPreMainPlace = false;
 
 	vector<int> preMainIndexes;
 
@@ -23,18 +23,20 @@ struct Element {
 			}
 		}
 		if (isNew) {
-			dependsOn.resize(dependsOn.size() + 1);
-			dependsOn[dependsOn.size() - 1] = d;
+			dependsOn.push_back(d);
 		}
         return isNew;
 	}
-
 };
 
 struct Cortege {
 private:
 	string X;
 	vector <Element> R;
+
+	vector<int> MPI; // вектор основных индексов в выражении
+	vector<int> A; // вектор переходов в другие состояния по соответствующим символам, размера алфавита X
+	vector<vector<int>> FSM; // Finite State Machine - вектор состояний(0, 1, ...)
 
 	void loadFromFile() {
 		ifstream ifs("RE.txt");
@@ -62,7 +64,7 @@ private:
 			}
 		} while (!ifs.eof());
 
-		R.resize(rStr.length()*2 + 1);
+		R.resize(rStr.length() * 2 + 1);
 
 		int k = 0;
 		for (int i = 0; i < (rStr.length() * 2 + 1); i++) {
@@ -77,7 +79,8 @@ private:
 	}
 
 	void defineDependings() {
-		/* Первое правило:
+		/*
+		Первое правило:
 		Начальные места всех термов многочлена помещенных в обычные или
 		итерационные скобки подчинены месту,
 		расположенному слева от открывающей скобки.
@@ -166,7 +169,7 @@ private:
 				continue;
 			}
 		}
-		
+
 		/*
 		Третье правило:
 		Начальные места всех термов многочлена
@@ -186,7 +189,7 @@ private:
 				}
 			}
 		}
-		
+
 		/*
 		Четвертое правило:
 		Если месту a подчинено место b,
@@ -219,19 +222,74 @@ private:
 	}
 
 	void definePLaces() {
+		R[0].isMainPlace = true;
+		MPI.push_back(0);
+		// Пробегаем все места выражения
 		for (int i = 0; i < R.size(); i++) {
-			if (i - 2 >= 0 && (i == 0 || X.find(R[i - 1].symbol) != string::npos)) {
+			if (i % 2 == 0 && i - 2 >= 0 && X.find(R[i - 1].symbol) != string::npos) {
 				R[i].isMainPlace = true;
 				R[i - 2].isPreMainPlace = true;
+				MPI.push_back(i);
+			}
+		}
+		// Пробегаем все подчиняемые места предосновного места i-2
+		for (int i = 0; i < R.size(); i++) {
+			if (R[i].isPreMainPlace) {
+				for (int j = 0; j < R[i].dependsOn.size(); j++) {
+					// Пробегаем все места выражения для нахождения основных мест среди подчиняемых
+					for (int k = 0; k < R.size(); k++) {
+						if (k % 2 == 0 && R[i].dependsOn[j] == k && R[k].isMainPlace == true) {
+							// Пробегаем индексы основных индексов чтобы занести их в предосновные
+							for (int z = 0; z < MPI.size(); z++) {
+								if (k == MPI[z]) {
+									R[i].preMainIndexes.push_back(z);
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 	}
- 
+
 public:
 	void initDefault() {
 		loadFromFile();
 		defineDependings();
 		definePLaces();
+	}
+
+	void buildFSM() {
+		// Инициализируем вектор переходов в другие состояния
+		for (int i = 0; i < X.length(); i++) {
+			// -1 - отсутствует переход в другое состояние
+			A.push_back(-1);
+		}
+
+		/*
+		// Инициализируем массив основных индексов
+		for (int i = 0; i < R.size(); i++) {
+			if (R[i].isMainPlace) {
+				MPI.push_back(i);
+			}
+		}
+		*/
+
+		// Инициализируем конечный автомат
+		for (int i = 0; i < MPI.size(); i++) {
+			FSM.push_back(A);
+		}
+
+		// У 0-го основного индекса отсутствует предосновные индексы
+		for (int i = 1; i < MPI.size(); i++) {
+			for (int j = 0; j < R[MPI[i] - 2].preMainIndexes.size(); j++) {
+				FSM[R[MPI[i] - 2].preMainIndexes[j]][X.find(R[MPI[i] - 1].symbol)] = i;
+			}
+		}
+	}
+
+	void optimizeFSM() {
+
 	}
 };
 
@@ -240,6 +298,6 @@ int main() {
 
 	Cortege C;
 	C.initDefault();
-
+	C.buildFSM();
 	return 0;
 }
