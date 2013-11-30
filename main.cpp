@@ -37,6 +37,7 @@ private:
 
 	vector<int> MPI; // вектор основных индексов в выражении
 	vector<int> A; // вектор переходов в другие состояния по соответствующим символам, размера алфавита X
+    vector<int> FSS; // массив конечный состояний
 	vector<vector<int>> FSM; // Finite State Machine - вектор состояний(0, 1, ...)
 
 	void loadFromFile() {
@@ -78,14 +79,14 @@ private:
 			}
 		}
 	}
-
-	void defineDependings() {
-		/*
-		Первое правило:
-		Начальные места всех термов многочлена помещенных в обычные или
-		итерационные скобки подчинены месту,
-		расположенному слева от открывающей скобки.
-		*/
+    
+    void firstRule() {
+        /*
+         Первое правило:
+         Начальные места всех термов многочлена помещенных в обычные или
+         итерационные скобки подчинены месту,
+         расположенному слева от открывающей скобки.
+        */
 		int sLvl = 0;
 		int iLvl = 0;
 		for (int i = 0; i < R.size(); i++) {
@@ -95,12 +96,18 @@ private:
 				for (int j = i + 1; (j < R.size() && sLvl != 0); j++) {
 					if (X.find(R[j].symbol) != string::npos && sLvl == 1 && iLvl == 0)
 						R[j - 1].addDependsOn(i - 1);
-					else if (R[j].symbol == '(')
+					else if (R[j].symbol == '(') {
 						sLvl++;
+                        if (sLvl == 2 && iLvl == 0)
+                            R[j - 1].addDependsOn(i - 1);
+                    }
 					else if (R[j].symbol == ')')
 						sLvl--;
-					else if (R[j].symbol == '<')
+					else if (R[j].symbol == '<') {
 						iLvl++;
+                        if (sLvl == 1 && iLvl == 1)
+                            R[j - 1].addDependsOn(i - 1);
+                    }
 					else if (R[j].symbol == '>')
 						iLvl--;
 				}
@@ -112,24 +119,35 @@ private:
 				for (int j = i + 1; (j < R.size() && iLvl != 0); j++) {
 					if (X.find(R[j].symbol) != string::npos && iLvl == 1 && sLvl == 0)
 						R[j - 1].addDependsOn(i - 1);
-					else if (R[j].symbol == '<')
+					else if (R[j].symbol == '<') {
 						iLvl++;
+                        if (iLvl == 2 && sLvl == 0)
+                            R[j - 1].addDependsOn(i - 1);
+                    }
 					else if (R[j].symbol == '>')
 						iLvl--;
-					else if (R[j].symbol == '(')
+					else if (R[j].symbol == '(') {
 						sLvl++;
+                        if (iLvl == 1 && sLvl == 1)
+                            R[j - 1].addDependsOn(i - 1);
+                    }
 					else if (R[j].symbol == ')')
 						sLvl--;
 				}
 				continue;
 			}
 		}
-
-		/*
-		Второе правило:
-		Место расположенное справа от закрывающей скобки
-		подчинено конечным местам термов многочлена.
-		*/
+    }
+    
+    void secondRule() {
+        /*
+         Второе правило:
+         Место расположенное справа от закрывающей скобки
+         подчинено конечным местам термов многочлена. А в итерационных
+         скобках еще и месту находящемуся слева от открывающей
+         */
+        int sLvl = 0;
+        int iLvl = 0;
 		for (int i = R.size() - 1; i >= 0; i--) {
 			if (R[i].symbol == ')') {
 				sLvl = 1;
@@ -137,12 +155,18 @@ private:
 				for (int j = i - 1; (j >= 0 && sLvl != 0); j--) {
 					if (X.find(R[j].symbol) != string::npos && sLvl == 1 && iLvl == 0)
 						R[i + 1].addDependsOn(j + 1);
-					else if (R[j].symbol == ')')
+					else if (R[j].symbol == ')') {
 						sLvl++;
+                        if (sLvl == 2 && iLvl == 0)
+                            R[i + 1].addDependsOn(j - 1);
+                    }
 					else if (R[j].symbol == '(')
 						sLvl--;
-					else if (R[j].symbol == '>')
+					else if (R[j].symbol == '>') {
 						iLvl++;
+                        if (sLvl == 1 && iLvl == 1)
+                            R[i + 1].addDependsOn(j - 1);
+                    }
 					else if (R[j].symbol == '<')
 						iLvl--;
 				}
@@ -154,72 +178,110 @@ private:
 				for (int j = i - 1; (j >= 0 && iLvl != 0); j--) {
 					if (X.find(R[j].symbol) != string::npos && iLvl == 1 && sLvl == 0)
 						R[i + 1].addDependsOn(j + 1);
-					else if (R[j].symbol == '>')
+					else if (R[j].symbol == '>') {
 						iLvl++;
+                        if (iLvl == 2 && sLvl == 0)
+                            R[i + 1].addDependsOn(j + 1);
+                    }
 					else if (R[j].symbol == '<') {
-						if (iLvl == 1) {
+                        iLvl--;
+						if (iLvl == 0) {
 							R[i + 1].addDependsOn(j - 1);
-							iLvl--;
-						}
+                        }
 					}
-					else if (R[j].symbol == ')')
+					else if (R[j].symbol == ')') {
 						sLvl++;
+                        if (iLvl == 1 && sLvl == 1)
+                            R[i + 1].addDependsOn(j + 1);
+                    }
 					else if (R[j].symbol == '(')
 						sLvl--;
 				}
 				continue;
 			}
 		}
-
-		/*
-		Третье правило:
-		Начальные места всех термов многочлена
-		заключенного в итерационные скобки
-		подчинены месту расположенному справа от закрывающей скобки.
-		*/
+    }
+    
+    void thirdRule() {
+        /*
+         Третье правило:
+         Начальные места всех термов многочлена
+         заключенного в итерационные скобки
+         подчинены месту расположенному справа от закрывающей скобки.
+         */
+        int iLvl = 0;
+        int sLvl = 0;
 		for (int i = R.size() - 1; i >= 0; i--) {
 			if (R[i].symbol == '>') {
 				iLvl = 1;
+                sLvl = 0;
 				for (int j = i - 1; (j >= 0 && iLvl != 0); j--) {
-					if (X.find(R[j].symbol) != string::npos && iLvl == 1) {
+					if (X.find(R[j].symbol) != string::npos && iLvl == 1 && sLvl == 0) {
 						R[j - 1].addDependsOn(i + 1);
 					}
+                    else if (R[j].symbol == '>') {
+                        iLvl++;
+                    }
 					else if (R[j].symbol == '<') {
 						iLvl--;
+                        if (iLvl == 1 && sLvl == 0) {
+                            R[j - 1].addDependsOn(i + 1);
+                        }
 					}
+                    else if (R[j].symbol == ')') {
+                        sLvl++;
+                    }
+                    else if (R[j].symbol == '(') {
+                        sLvl--;
+                        if (iLvl == 1 && sLvl == 0) {
+                            R[j - 1].addDependsOn(i + 1);
+                        }
+                    }
 				}
 			}
 		}
-
-		/*
-		Четвертое правило:
-		Если месту a подчинено место b,
-		и месту b подчинено место c, то
-		месту a подчинено место c.
-		*/
+    }
+    
+    void forthRule() {
+        /*
+         Четвертое правило:
+         Если месту a подчинено место b,
+         и месту b подчинено место c, то
+         месту a подчинено место c.
+         */
 		bool isSmthChanged = false;
 		do {
 			isSmthChanged = false;
 			// Пробегаем все места выражения
-			for (int i = 0; i < R.size(); i += 2)
+			for (int i = 0; i < R.size(); i ++)
 				// Пробегаем j мест, которым подчинено место i
-			for (int j = 0; j < R[i].dependsOn.size(); j++)
-				// Пробегаем выражение в поиске места подчиненного месту i
-			for (int k = 0; k < R.size(); k += 2)
-			if (find(R[k].dependsOn.begin(), R[k].dependsOn.end(), i) != R[k].dependsOn.end())
-			if (R[k].addDependsOn(R[i].dependsOn[j]))
-				isSmthChanged = true;
+                for (int j = 0; j < R[i].dependsOn.size(); j++)
+                    // Пробегаем выражение в поиске места подчиненного месту i
+                    for (int k = 0; k < R.size(); k ++)
+                        if (find(R[k].dependsOn.begin(), R[k].dependsOn.end(), i) != R[k].dependsOn.end())
+                            if (R[k].addDependsOn(R[i].dependsOn[j]))
+                                isSmthChanged = true;
 		} while (isSmthChanged);
-
-		/*
-		Пятое правило:
-		Каждое место подчинено самому себе.
-		*/
+    }
+    
+    void fifthRule() {
+        /*
+         Пятое правило:
+         Каждое место подчинено самому себе.
+         */
 		for (int i = 0; i < R.size(); i++) {
 			if (i % 2 == 0) {
 				R[i].addDependsOn(i);
 			}
 		}
+    }
+    
+	void defineDependings() {
+        firstRule();
+        secondRule();
+        thirdRule();
+        forthRule();
+        fifthRule();
 	}
 
 	void definePLaces() {
@@ -227,7 +289,7 @@ private:
 		MPI.push_back(0);
 		// Пробегаем все места выражения
 		for (int i = 0; i < R.size(); i++) {
-			if (i % 2 == 0 && i - 2 >= 0 && X.find(R[i - 1].symbol) != string::npos) {
+			if (i % 2 == 0 && X.find(R[i - 1].symbol) != string::npos) {
 				R[i].isMainPlace = true;
 				R[i - 2].isPreMainPlace = true;
 				MPI.push_back(i);
@@ -239,7 +301,7 @@ private:
 				for (int j = 0; j < R[i].dependsOn.size(); j++) {
 					// Пробегаем все места выражения для нахождения основных мест среди подчиняемых
 					for (int k = 0; k < R.size(); k++) {
-						if (k % 2 == 0 && R[i].dependsOn[j] == k && R[k].isMainPlace == true) {
+						if (R[i].dependsOn[j] == k && R[k].isMainPlace == true) {
 							// Пробегаем индексы основных индексов чтобы занести их в предосновные
 							for (int z = 0; z < MPI.size(); z++) {
 								if (k == MPI[z]) {
@@ -278,15 +340,6 @@ public:
 			A.push_back(-1);
 		}
 
-		/*
-		// Инициализируем массив основных индексов
-		for (int i = 0; i < R.size(); i++) {
-			if (R[i].isMainPlace) {
-				MPI.push_back(i);
-			}
-		}
-		*/
-
 		// Инициализируем конечный автомат
 		for (int i = 0; i < MPI.size(); i++) {
 			FSM.push_back(A);
@@ -307,13 +360,33 @@ public:
                     for (int k = 0; k < FSM.size(); k++) {
                         for (int z = 0; z < FSM[0].size(); z++) {
                             if (FSM[k][z] >= i2) {
-                                FSM[k][z]--;
+                                if (FSM[k][z] > 0) {
+                                    FSM[k][z]--;
+                                }
                             }
                         }
                     }
                     FSM.erase(FSM.begin()+i2);
-                    i1--;
+                    i2--;
                 }
+            }
+        }
+        
+        // Инициализируем массив конечных состояний
+        bool isFinitState;
+        for (int i = 0; i < FSM.size(); i++) {
+            isFinitState = true;
+            for (int j = 0; j < FSM[i].size(); j++) {
+                if (FSM[i][j] == i) {
+                    isFinitState = true;
+                }
+                else if (FSM[i][j] != -1) {
+                    isFinitState = false;
+                    break;
+                }
+            }
+            if (isFinitState) {
+                FSS.push_back(i);
             }
         }
 	}
@@ -328,13 +401,15 @@ public:
             }
             for (int i = 0; i < FSM.size(); i++) {
                 if (j == 0) {
-                    cout << i << " ";
+                    cout << i;
+                    i > 9 ? cout << " " : cout << "  ";
                 }
                 else if (FSM[i][j-1] == -1) {
-                    cout << "_ ";
+                    cout << ".  ";
                 }
                 else {
-                    cout << FSM[i][j-1] << " ";
+                    cout << FSM[i][j-1];
+                    FSM[i][j-1] > 9 ? cout << " " : cout << "  ";
                 }
             }
             cout << endl;
@@ -364,7 +439,7 @@ public:
                     }
                 }
             }
-            if (ei == e.length() && q == FSM.size()-1) {
+            if (ei == e.length() && find(FSS.begin(), FSS.end(), q) != FSS.end()) {
                 isEnd = true;
                 isCorrespond = true;
             }
@@ -392,15 +467,17 @@ int main() {
 	Cortege C;
 	C.initDefault();
     
+    //nm(c|d)<k>n<n|m>
+    string re = C.getRegularExpression();
+    cout << "Регулярное выражение:\n" << re << endl;
+    
 	C.buildFSM();
-    cout << "Конечный автомат до оптимизации:" << endl;
+    cout << "Конечный автомат:" << endl;
     C.printFSM();
-    cout << "Конечный автомат после оптимизации:" << endl;
+    cout << "Конечный автомат после упрощения:" << endl;
     C.optimizeFSM();
     C.printFSM();
 	
-    //(x|d)<c><d><e>(z|k)
-    string re = C.getRegularExpression();
     string e;
     
     int cmd = -1;
@@ -445,13 +522,3 @@ int getCommand() {
     }
     return cmd;
 }
-
-
-
-
-
-
-
-
-
-
