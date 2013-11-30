@@ -87,27 +87,26 @@ private:
 		итерационные скобки подчинены месту,
 		расположенному слева от открывающей скобки.
 		*/
+
 		int sLvl = 0;
 		int iLvl = 0;
 		for (int i = 0; i < R.size(); i++) {
 			if (R[i].symbol == '(') {
 				sLvl = 1;
 				iLvl = 0;
+				R[i + 1].addDependsOn(i - 1);
 				for (int j = i + 1; (j < R.size() && sLvl != 0); j++) {
-					if (X.find(R[j].symbol) != string::npos && sLvl == 1 && iLvl == 0)
-						R[j - 1].addDependsOn(i - 1);
+					if (R[j].symbol == '|' && sLvl == 1 && iLvl == 0) {
+						R[j + 1].addDependsOn(i - 1);
+					}
 					else if (R[j].symbol == '(') {
 						sLvl++;
-                        if (sLvl == 2 && iLvl == 0)
-                            R[j - 1].addDependsOn(i - 1);
-                    }
+					}
 					else if (R[j].symbol == ')')
 						sLvl--;
 					else if (R[j].symbol == '<') {
 						iLvl++;
-                        if (sLvl == 1 && iLvl == 1)
-                            R[j - 1].addDependsOn(i - 1);
-                    }
+					}
 					else if (R[j].symbol == '>')
 						iLvl--;
 				}
@@ -116,21 +115,19 @@ private:
 			else if (R[i].symbol == '<') {
 				iLvl = 1;
 				sLvl = 0;
+				R[i + 1].addDependsOn(i - 1);
 				for (int j = i + 1; (j < R.size() && iLvl != 0); j++) {
-					if (X.find(R[j].symbol) != string::npos && iLvl == 1 && sLvl == 0)
-						R[j - 1].addDependsOn(i - 1);
+					if (R[j].symbol == '|' && iLvl == 1 && sLvl == 0) {
+						R[j + 1].addDependsOn(i - 1);
+					}
 					else if (R[j].symbol == '<') {
 						iLvl++;
-                        if (iLvl == 2 && sLvl == 0)
-                            R[j - 1].addDependsOn(i - 1);
-                    }
+					}
 					else if (R[j].symbol == '>')
 						iLvl--;
 					else if (R[j].symbol == '(') {
 						sLvl++;
-                        if (iLvl == 1 && sLvl == 1)
-                            R[j - 1].addDependsOn(i - 1);
-                    }
+					}
 					else if (R[j].symbol == ')')
 						sLvl--;
 				}
@@ -138,14 +135,14 @@ private:
 			}
 		}
     }
-    
+
     void secondRule() {
 		/*
 		Второе правило:
 		Место расположенное справа от закрывающей скобки
 		подчинено конечным местам термов многочлена. А для итерационных
 		еще и месту расположенному непосредственно
-		слева от открывающей скобки
+		слева от открывающей скобки.
 		*/
         int sLvl = 0;
         int iLvl = 0;
@@ -153,20 +150,18 @@ private:
 			if (R[i].symbol == ')') {
 				sLvl = 1;
 				iLvl = 0;
+				R[i + 1].addDependsOn(i - 1);
 				for (int j = i - 1; (j >= 0 && sLvl != 0); j--) {
-					if (X.find(R[j].symbol) != string::npos && sLvl == 1 && iLvl == 0)
-						R[i + 1].addDependsOn(j + 1);
+					if (R[j].symbol == '|' && sLvl == 1 && iLvl == 0) {
+						R[i + 1].addDependsOn(j - 1);
+					}
 					else if (R[j].symbol == ')') {
 						sLvl++;
-                        if (sLvl == 2 && iLvl == 0)
-                            R[i + 1].addDependsOn(j - 1);
                     }
 					else if (R[j].symbol == '(')
 						sLvl--;
 					else if (R[j].symbol == '>') {
 						iLvl++;
-                        if (sLvl == 1 && iLvl == 1)
-                            R[i + 1].addDependsOn(j - 1);
                     }
 					else if (R[j].symbol == '<')
 						iLvl--;
@@ -176,24 +171,21 @@ private:
 			else if (R[i].symbol == '>') {
 				iLvl = 1;
 				sLvl = 0;
+				R[i + 1].addDependsOn(i - 1);
 				for (int j = i - 1; (j >= 0 && iLvl != 0); j--) {
-					if (X.find(R[j].symbol) != string::npos && iLvl == 1 && sLvl == 0)
-						R[i + 1].addDependsOn(j + 1);
+					if (R[j].symbol == '|' && iLvl == 1 && sLvl == 0)
+						R[i + 1].addDependsOn(j - 1);
 					else if (R[j].symbol == '>') {
 						iLvl++;
-                        if (iLvl == 2 && sLvl == 0)
-                            R[i + 1].addDependsOn(j + 1);
                     }
 					else if (R[j].symbol == '<') {
                         iLvl--;
-						if (iLvl == 0) {
+						if (iLvl == 0 && sLvl == 0) {
 							R[i + 1].addDependsOn(j - 1);
-                        }
+						}
 					}
 					else if (R[j].symbol == ')') {
 						sLvl++;
-                        if (iLvl == 1 && sLvl == 1)
-                            R[i + 1].addDependsOn(j + 1);
                     }
 					else if (R[j].symbol == '(')
 						sLvl--;
@@ -217,26 +209,23 @@ private:
 				iLvl = 1;
                 sLvl = 0;
 				for (int j = i - 1; (j >= 0 && iLvl != 0); j--) {
-					if (X.find(R[j].symbol) != string::npos && iLvl == 1 && sLvl == 0) {
-						R[j - 1].addDependsOn(i + 1);
+					if (R[j].symbol == '|' && iLvl == 1 && sLvl == 0) {
+						R[j + 1].addDependsOn(i + 1);
 					}
                     else if (R[j].symbol == '>') {
                         iLvl++;
                     }
 					else if (R[j].symbol == '<') {
 						iLvl--;
-                        if (iLvl == 1 && sLvl == 0) {
-                            R[j - 1].addDependsOn(i + 1);
-                        }
+						if (iLvl == 0 && sLvl == 0) {
+							R[j + 1].addDependsOn(i + 1);
+						}
 					}
                     else if (R[j].symbol == ')') {
                         sLvl++;
                     }
                     else if (R[j].symbol == '(') {
                         sLvl--;
-                        if (iLvl == 1 && sLvl == 0) {
-                            R[j - 1].addDependsOn(i + 1);
-                        }
                     }
 				}
 			}
@@ -289,7 +278,7 @@ private:
 		R[0].isMainPlace = true;
 		MPI.push_back(0);
 		// Пробегаем все места выражения
-		for (int i = 0; i < R.size(); i++) {
+		for (int i = 2; i < R.size(); i++) {
 			if (i % 2 == 0 && X.find(R[i - 1].symbol) != string::npos) {
 				R[i].isMainPlace = true;
 				R[i - 2].isPreMainPlace = true;
@@ -360,11 +349,12 @@ public:
                 if (i1 != i2 && isSameColumns(i1, i2)) {
                     for (int k = 0; k < FSM.size(); k++) {
                         for (int z = 0; z < FSM[0].size(); z++) {
-                            if (FSM[k][z] >= i2) {
-                                if (FSM[k][z] > 0) {
-                                    FSM[k][z]--;
-                                }
+                            if (FSM[k][z] == i2) {
+								FSM[k][z] = i1;
                             }
+							else if (FSM[k][z] > i2) {
+								FSM[k][z]--;
+							}
                         }
                     }
                     FSM.erase(FSM.begin()+i2);
@@ -418,7 +408,7 @@ public:
         cout << endl;
     }
     
-    bool isExpressionCorrexspond(string e) {
+    bool isExpressionCorrespond(string e) {
         bool isCorrespond = false;
         bool isEnd = true;
         
@@ -464,10 +454,11 @@ public:
 int getCommand();
 
 int main() {
-//	setlocale(LC_ALL, "rus");
+	setlocale(LC_ALL, "rus");
 	Cortege C;
 	C.initDefault();
     
+	//<x<e>f>abc(x|<l|m>)
     // nm(c|d)<k>n<n|m>
     string re = C.getRegularExpression();
     cout << "Регулярное выражение:\n" << re << endl;
@@ -490,7 +481,7 @@ int main() {
 				cout << "Введи выражение: ";
 				cin >> e;
 				cout << "Выражение \"" << e;
-				C.isExpressionCorrexspond(e) ? cout << "\" " : cout << "\" не ";
+				C.isExpressionCorrespond(e) ? cout << "\" " : cout << "\" не ";
 				cout << "подходит." << endl;
 				cout << endl;
 				break;
